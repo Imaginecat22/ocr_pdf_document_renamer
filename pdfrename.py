@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
+
+#TODO
+#1. I need to filter out (most) punctuation, and replace spaces with underscores			
+#2. setup on TVPC and test there
 from os import path
 import os
 import sys
 import subprocess
-
+import shutil
 
 #requires tesseract already be installed. Tesseract is the engine; 
 #pytesseract is the wrapper/api that interacts with it
@@ -93,6 +97,10 @@ watch_path = input("Please input file path to search: ")
 print("Source Path Used: >" + watch_path)
 #print("Destination Path Used: >" + file_path)
 
+verbose = 0
+vb = input("Verbose? (if you don't understand this, just ignore it): ")
+if vb[0] == "y" or "Y":
+	verbose = 1
 
 def getdocpictures(doc_filepath, doc_name):
 	images = convert_from_path(doc_name)
@@ -106,7 +114,8 @@ def getdocpictures(doc_filepath, doc_name):
 
 def findext(dr, ext):
 	retpath = path.join(dr, "*.{}".format(ext)) 
-	print("rp: ", retpath)
+	if verbose:
+		print("rp: ", retpath)
 	return glob(retpath)
 
 def getkeywords(text):
@@ -122,7 +131,11 @@ def getkeywords(text):
 		if (ctr < 5) and (t2[0] != "510"):
 			doctitle += str(item) + " "
 			ctr += 1
-	print("Doctitle: ", doctitle)	
+	
+	
+	#I need to filter out (most) punctuation, and replace spaces with underscores			
+	if verbose:
+		print("Doctitle: ", doctitle)	
 	#print("sents: \n")
 	dcheck = ''
 	for item in doc.sents:
@@ -130,38 +143,67 @@ def getkeywords(text):
 	#print("dcheck: \n", dcheck)
 
 	try:
-		print("nested try block")
 		date = dparser.parse(dcheck) #  , fuzzy=True)
 	except:
-		print("nested except block")
 		dates = datefinder.find_dates(dcheck)	 #text instead of dcheck
 		ctr = 0
 		for d in dates:
-			print("date ", d)
+			if verbose:
+				print("date ", d)
 			#this will get the last date
 			if ctr < 1:
 				date = d
 			ctr += 1
 	
 	#print("fnldate: ", str(date.date()))
-	result = doctitle + '[' + str(datedate()) + ']'
-	print("result: ", result)
+	result = doctitle + '[' + str(date.date()) + ']'
+	print("new title: ", result)
 	return result
+
+def renamePDF(doc_filepath, doc_name, numpgs, newtitle):
+	newfilepath = doc_filepath + '/' + 'convertedPDFtitles/'	
+	if not os.path.exists(newfilepath):
+		os.makedirs(newfilepath)
+	copypath = doc_name
+	if verbose:
+		print("cpypath: ", copypath)
+	shutil.copy(copypath, newfilepath)
+	docnameonly = doc_name[doc_name.rindex('/') + 1 : ] 
+	print("dname: ", docnameonly)
+	renamepath = newfilepath + docnameonly
+	if verbose:
+		print("renamepath: ", renamepath)
+	fnltitle = newtitle + '.pdf'
+	if verbose:
+		print("fnltitle: ", fnltitle)
+	os.rename(renamepath, newtitle) 
+	
 
 if watch_path[0] == "~":
 	watch_path = watch_path[1:] 
-	print("new wp: ", watch_path)
+	if verbose:
+		print("new wp: ", watch_path)
 	watch_path = '/home/imagi' + watch_path
 files = findext(watch_path, "pdf")
 
-print("File list: ", files)
+if verbose:
+	print("File list: ", files)
 
-docname = files[0] #files[pdf] 
-imgpath, picnum = getdocpictures(watch_path, docname)
-text = ''
-for i in range(picnum):  
-	picname = 'page' + str(i) + '.jpg'
-	text += pytesseract.image_to_string(imgpath + picname) 
-	text += '--------------------------------------------\n'
-newtitle = getkeywords(text)
+docname = ''
+try:
+	docname = files[0] #files[pdf] 
+except:
+	print("No files found!")
+	sys.exit(-1)
+
+for f in range(len(files)):
+	docname = files[f] 
+	imgpath, picnum = getdocpictures(watch_path, docname)
+	text = ''
+	for i in range(picnum):  
+		picname = 'page' + str(i) + '.jpg'
+		text += pytesseract.image_to_string(imgpath + picname) 
+		text += '--------------------------------------------\n'
+	newtitle = getkeywords(text)
+	renamePDF(watch_path, files[f], picnum, newtitle)
 
