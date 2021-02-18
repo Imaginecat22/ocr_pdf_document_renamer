@@ -80,8 +80,12 @@ nlp = en_core_web_md.load()
 
 import dateutil.parser as dparser
 import datetime
+from datetime import date
 import re
 from string import punctuation
+
+today = date.today()
+
 
 try:
 	import datefinder
@@ -118,20 +122,36 @@ def findext(dr, ext):
 		print("rp: ", retpath)
 	return glob(retpath)
 
-def getkeywords(text):
+
+#this doesn't appear to be working/doing anything...
+def myfilter(noun_chunks):
+	naughtylist = ['APT 318', 'APT# 318', 'APT # 318', 'APT #318', 
+			'Nashville', 'NASHVILLE', '37209', 
+			'400-2173', '(423)400-2173', '4234002173',
+			'510 Old Hickory', 'Old Hickory Blvd', 'OLD HICKORY']
+	print("noun type: ", type(noun_chunks))
+	for item in noun_chunks:
+		noun = str(item)
+		if any(s in noun for s in naughtylist):
+			noun_chunks.remove(item)
+	return noun_chunks
+		
+
+def getkeywords(text, tds):
 	result = []
 	pos_tag = ['PROPN', 'ADJ', 'NOUN']
 	doc = nlp(text)
 	#print("noun chunks: \n")
 	ctr = 0
 	doctitle = ''
-	for item in doc.noun_chunks:
+	chunks = list(doc.noun_chunks)
+	chunks = myfilter(chunks)
+	for item in chunks: #doc.noun_chunks:
 		temp = str(item)
 		t2 = temp.split()
 		if (ctr < 5) and (t2[0] != "510"):
 			doctitle += str(item) + " "
 			ctr += 1
-	
 	
 	#I need to filter out (most) punctuation, and replace spaces with underscores			
 	if verbose:
@@ -143,20 +163,35 @@ def getkeywords(text):
 	#print("dcheck: \n", dcheck)
 
 	try:
-		date = dparser.parse(dcheck) #  , fuzzy=True)
+		mydate = dparser.parse(dcheck) #  , fuzzy=True)
 	except:
 		dates = datefinder.find_dates(dcheck)	 #text instead of dcheck
+		bestdates = []
+		if tds != '':
+			year = tds[0:3]
+			mon = tds[4:5]
+			day = tds[6:7]
+			tempdate = datetime.datetime(int(year), int(mon), int(day))
+			bestdates.append(tempdate)
 		ctr = 0
+		year = 0
 		for d in dates:
-			if verbose:
-				print("date ", d)
-			#this will get the last date
-			if ctr < 1:
-				date = d
-			ctr += 1
+			#if verbose:
+			#	print("date ", d)
+			
+			yint = int(d.year)	
+			if yint > 2015 and yint <= int(today.year):
+				bestdates.append(d)
+				print("good date: ", d)
+				#if d.year > year:
+				#	year = d.year
+		if dates:
+			mydate = bestdates[0]
+		else:
+			mydate = today
 	
 	#print("fnldate: ", str(date.date()))
-	result = doctitle + '[' + str(date.date()) + ']'
+	result = doctitle + '[' + str(mydate.date()) + ']'
 	print("new title: ", result)
 	return result
 
@@ -199,11 +234,22 @@ except:
 for f in range(len(files)):
 	docname = files[f] 
 	imgpath, picnum = getdocpictures(watch_path, docname)
+	dname = docname.rpartition("/")
+	titledatestring = ''
+	if verbose:
+		print("third partition	:", dname[2])
+	if len(dname[2]) == 21:
+		title = dname[2]
+		if title[:3] == 'IMG_':
+		#IMG_yyyymmdd_000#
+			titledatestring = title[4:11]
+			if verbose:
+				print("titledate: ", titledatestring)
 	text = ''
 	for i in range(picnum):  
 		picname = 'page' + str(i) + '.jpg'
-		text += pytesseract.image_to_string(imgpath + picname) 
+		text += pytesseract.image_to_string(imgpath + picname, lang = 'eng', config = ' --psm 1') 
 		text += '--------------------------------------------\n'
-	newtitle = getkeywords(text)
+	newtitle = getkeywords(text, titledatestring)
 	renamePDF(watch_path, files[f], picnum, newtitle)
 
