@@ -150,9 +150,12 @@ def charfiltfunc(tstr):
 		if tstr.find('<') != -1:
 			tstr = tstr.replace('<', '', 100)
 
-		if tstr.find('') != -1:
-			tstr = tstr.replace('<', '', 100)
+		if tstr.find('+') != -1:
+			tstr = tstr.replace('+', '', 100)
 
+		if tstr.find('=') != -1:
+			tstr = tstr.replace('=', '', 100)
+	
 		if tstr.find(' ') != -1:
 			tstr = tstr.replace(' ', '_', 100)
 	
@@ -170,7 +173,7 @@ def myfilter(noun_chunks):
 	for item in noun_chunks:
 		noun = str(item)
 		nnoun = charfiltfunc(noun)
-		if len(nnoun) > 1:
+		if len(nnoun) > 2:
 			nounlist.append(nnoun)
 	
 	chunkslist = filterfunc(nounlist, naughtylist)	
@@ -246,19 +249,20 @@ def renamePDF(doc_filepath, doc_name, numpgs, newtitle):
 	if not os.path.exists(newfilepath):
 		os.makedirs(newfilepath)
 	copypath = doc_name
-	if verbose:
-		print("cpypath: ", copypath)
+	#if verbose:
+	print("cpypath: ", copypath)
+	print("newfilepath: ", newfilepath)
 	shutil.copy(copypath, newfilepath)
 	docnameonly = doc_name[doc_name.rindex('/') + 1 : ] 
 	if verbose:
 		print("dname: ", docnameonly)
 	renamepath = newfilepath + docnameonly
-	if verbose:
-		print("renamepath: ", renamepath)
-	fnltitle = newtitle + '.pdf'
-	if verbose:
-		print("fnltitle: ", fnltitle)
-	os.rename(renamepath, newtitle) 
+	#if verbose:
+	print("renamepath: ", renamepath)
+	fnltitle = newfilepath + newtitle + '.pdf'
+	#if verbose:
+	print("fnltitle: ", fnltitle)
+	os.rename(renamepath, fnltitle) 
 	
 
 if watch_path[0] == "~":
@@ -299,4 +303,6 @@ for f in range(len(files)):
 		text += '--------------------------------------------\n'
 	newtitle = getkeywords(text, titledatestring)
 	renamePDF(watch_path, files[f], picnum, newtitle)
+	for i in range(picnum):  
+		os.remove(imgpath + 'page' + str(i) + '.jpg')
 
