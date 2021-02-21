@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 #TODO
-#1. I need to filter out (most) punctuation, and replace spaces with underscores			
-#2. setup on TVPC and test there
+#1. setup on TVPC and test there
 from os import path
 import os
 import sys
 import subprocess
 import shutil
+import re
 
 #requires tesseract already be installed. Tesseract is the engine; 
 #pytesseract is the wrapper/api that interacts with it
@@ -103,11 +103,12 @@ print("Source Path Used: >" + watch_path)
 
 verbose = 0
 vb = input("Verbose? (if you don't understand this, just ignore it): ")
-if vb[0] == "y" or "Y":
-	verbose = 1
+if len(vb) > 0:
+	if vb[0] == "y" or "Y":
+		verbose = 1
 
 def getdocpictures(doc_filepath, doc_name):
-	images = convert_from_path(doc_name)
+	images = convert_from_path(doc_name, 500)
 	imgfilepath = doc_filepath + '/' + 'convertedimages/'	
 	if not os.path.exists(imgfilepath):
 		os.makedirs(imgfilepath)
@@ -123,18 +124,62 @@ def findext(dr, ext):
 	return glob(retpath)
 
 
+def filterfunc(strlist, substrlist):
+	return [tstr for tstr in strlist if not any(sub in tstr for sub in substrlist)]
+
+def charfiltfunc(tstr):
+	if len(tstr) > 0:
+		if tstr.find('|') != -1:
+			tstr = tstr.replace('|', '', 100)
+		
+		if tstr.find('\n') != -1:
+			tstr = tstr.replace('\n', '', 100)
+		
+		if tstr.find('\x0c') != -1:
+			tstr = tstr.replace('\x0c', '', 100)
+
+		if tstr.find('\\') != -1:
+			tstr = tstr.replace('\\', '', 100)
+
+		if tstr.find('.') != -1:
+			tstr = tstr.replace('.', '', 100)
+
+		if tstr.find('>') != -1:
+			tstr = tstr.replace('>', '', 100)
+
+		if tstr.find('<') != -1:
+			tstr = tstr.replace('<', '', 100)
+
+		if tstr.find('') != -1:
+			tstr = tstr.replace('<', '', 100)
+
+		if tstr.find(' ') != -1:
+			tstr = tstr.replace(' ', '_', 100)
+	
+	return tstr
+		
+
 #this doesn't appear to be working/doing anything...
 def myfilter(noun_chunks):
-	naughtylist = ['APT 318', 'APT# 318', 'APT # 318', 'APT #318', 
+	naughtylist = ['APT_318', 'APT#_318', 'APT_#_318', 'APT_#318', 
 			'Nashville', 'NASHVILLE', '37209', 
 			'400-2173', '(423)400-2173', '4234002173',
-			'510 Old Hickory', 'Old Hickory Blvd', 'OLD HICKORY']
-	print("noun type: ", type(noun_chunks))
+			'510_Old_Hickory', 'Old_Hickory_Blvd', 'OLD_HICKORY']
+	nounlist = []
+	chunkslist = []
 	for item in noun_chunks:
 		noun = str(item)
-		if any(s in noun for s in naughtylist):
-			noun_chunks.remove(item)
-	return noun_chunks
+		nnoun = charfiltfunc(noun)
+		if len(nnoun) > 1:
+			nounlist.append(nnoun)
+	
+	chunkslist = filterfunc(nounlist, naughtylist)	
+	if verbose:
+		print("chunkslist: ", chunkslist)
+	
+	
+	
+	return chunkslist
 		
 
 def getkeywords(text, tds):
@@ -150,7 +195,7 @@ def getkeywords(text, tds):
 		temp = str(item)
 		t2 = temp.split()
 		if (ctr < 5) and (t2[0] != "510"):
-			doctitle += str(item) + " "
+			doctitle += str(item) + "-"
 			ctr += 1
 	
 	#I need to filter out (most) punctuation, and replace spaces with underscores			
@@ -182,7 +227,8 @@ def getkeywords(text, tds):
 			yint = int(d.year)	
 			if yint > 2015 and yint <= int(today.year):
 				bestdates.append(d)
-				print("good date: ", d)
+				if verbose:
+					print("good date: ", d)
 				#if d.year > year:
 				#	year = d.year
 		if dates:
@@ -204,7 +250,8 @@ def renamePDF(doc_filepath, doc_name, numpgs, newtitle):
 		print("cpypath: ", copypath)
 	shutil.copy(copypath, newfilepath)
 	docnameonly = doc_name[doc_name.rindex('/') + 1 : ] 
-	print("dname: ", docnameonly)
+	if verbose:
+		print("dname: ", docnameonly)
 	renamepath = newfilepath + docnameonly
 	if verbose:
 		print("renamepath: ", renamepath)
