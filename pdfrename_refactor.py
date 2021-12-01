@@ -263,9 +263,7 @@ def renamePDF(doc_filepath, doc_name, numpgs, newtitle):
 	#if verbose:
 	print("fnltitle: ", fnltitle)
 	os.rename(renamepath, fnltitle) 
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~	
-#mark s
+	
 
 if watch_path[0] == "~":
 	watch_path = watch_path[1:] 
