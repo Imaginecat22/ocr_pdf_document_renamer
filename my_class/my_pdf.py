@@ -2,16 +2,12 @@
 
 #import dateparser
 import os
-import sys
 from wand.image import Image
 import shutil
-import glob
 
-#not sure if this package name is correct in both cases
 import pytesseract 
-#import spacy
-#import en_core_web_md
-
+import spacy
+import en_core_web_md
 
 import dateutil.parser as dparser
 import datetime
@@ -19,78 +15,44 @@ from datetime import date
 import re
 from string import punctuation
 
-#import datefinder
+import datefinder
 
 class PDF:
-	def __init__(self, verbose = False, testing = 0):
+	def __init__(self, title, path, verbose = False, testing = 0):
 		self.verbose = verbose
 		self.testing = testing
-		self.os = None
-		self.home = self.get_home()
-		self.doc = self.get_pdf_title()
-		self.num_pages = None
-		self.newtitle = get_keywords()
-		self.words = []
-		self.date = ''
+		self.home = path
+		self.title = title
+		self.date = self.get_date()
 		self.today = date.today()
-		self.pdf_path = os.path.join(self.home, self.doc)
+		self.pdf_path = os.path.join(self.home, self.title)
 		self.img_path = os.path.join(self.pdf_path + 'convertedimages')
-		#self.nlp = en_core_web_md.load()
-		self.run()
-
-	def run(self):
-		"""
-		docname = self.doc
-		imgpath = self.img_path
-		picnum = self.num_pages
-		titledatestring = self.date
-
-			newtitle = getkeywords(text, titledatestring)
-			renamePDF(watch_path, files[f], picnum, newtitle)
-			for i in range(picnum):  
-				os.remove(imgpath + 'page' + str(i) + '.jpg')
-		"""
+		self.words = []
 		self.num_pages = self.get_pdf_images()
-		dname = self.doc.rpartition("/")
-		if self.verbose:
-			print("third partition	:", dname[2])
+		self.text = self.get_text()
+		self.nlp = en_core_web_md.load()
+		self.doc = self.nlp(self.text)
 
-	def get_pdf_title(self):
-		title = input("Please input title of pdf in your Documents directory:\n")
-		if self.testing == 1:
-			if title == "":
-				title = "benchmark.pdf"
+	def get_new_title(self): 
+		newtitle = self.get_keywords_for_title()
+		for i in range(self.num_pages):  
+			os.remove(self.img_path + 'page' + str(i) + '.jpg')
+		return newtitle
 
-		if self.verbose:
-			print(title)
-
-		return title
-
-	def get_home(self):
-		print(sys.platform)
-		if sys.platform == 'darwin':
-			self.os = 1
-		elif sys.platform == 'win32':
-			self.os = 2
-		else:
-			self.os = 0
-		
-		if self.os == 0 or self.os == 1:
-			home = os.path.join(os.path.expanduser("~"), "Documents")
-		elif self.os == 2:
-			home = os.path.join("Users" + os.getenv['username'] + "Documents")
-		if self.verbose:
-			print(home)
-		return home
-
-	def get_date(self, dname):
-		if len(dname[2]) == 21:
-			title = dname[2]
-			if title[:3] == 'IMG_':
+	def get_date(self):
+		if len(self.title) == 21:
+			if self.title[:3] == 'IMG_':
 			#IMG_yyyymmdd_000#
-				self.date = title[4:11]
+				date = self.title[4:11]
 				if self.verbose:
-					print("titledate: ", self.date)
+					print("titledate: ", date)
+			else:
+				date = ''
+		else:
+			date = ''
+
+		return date
+
 	
 	def get_text(self):
 		text = ''
@@ -102,7 +64,7 @@ class PDF:
 
 
 	def get_pdf_images(self):
-		pdf_images = Image(self.doc, resolution=500)
+		pdf_images = Image(filename=self.home + self.title, resolution=500)
 		images = pdf_images.convert(".jpg")
 		if not os.path.exists(self.img_path):
 			os.makedirs(self.img_path)
@@ -178,11 +140,37 @@ class PDF:
 		if self.verbose:
 			print("chunkslist: ", chunkslist)
 		
-		
-		
 		return chunkslist
-"""
-	def get_date(self, tds):
+
+	def get_keywords_for_title(self):
+		result = []
+		pos_tag = ['PROPN', 'ADJ', 'NOUN']
+
+		#I struggle to remember what's going on here....
+		#print("noun chunks: \n")
+		ctr = 0
+		doctitle = ''
+		chunks = list(self.doc.noun_chunks)
+		chunks = self.myfilter(chunks)
+		for item in chunks: #doc.noun_chunks:
+			temp = str(item)
+			t2 = temp.split()
+			if (ctr < 5) and (t2[0] != "510"):
+				doctitle += str(item) + "-"
+				ctr += 1
+		
+		#I need to filter out (most) punctuation, and replace spaces with underscores			
+		if self.verbose:
+			print("Doctitle: ", doctitle)	
+
+		mydate = self.get_parsed_date()
+		
+		#print("fnldate: ", str(date.date()))
+		result = doctitle + '[' + str(mydate.date()) + ']'
+		print("new title: ", result)
+		return result
+
+	def get_parsed_date(self):
 		#print("sents: \n")
 		dcheck = ''
 		for item in self.doc.sents:
@@ -194,10 +182,10 @@ class PDF:
 		except:
 			dates = datefinder.find_dates(dcheck)	 #text instead of dcheck
 			bestdates = []
-			if tds != '':
-				year = tds[0:3]
-				mon = tds[4:5]
-				day = tds[6:7]
+			if self.date != '':
+				year = self.date[0:3]
+				mon = self.date[4:5]
+				day = self.date[6:7]
 				tempdate = datetime.datetime(int(year), int(mon), int(day))
 				bestdates.append(tempdate)
 			ctr = 0
@@ -217,55 +205,4 @@ class PDF:
 				mydate = bestdates[0]
 			else:
 				mydate = self.today
-
-			
-"""
-	def get_keywords(self, text, tds):
-		result = []
-		pos_tag = ['PROPN', 'ADJ', 'NOUN']
-
-		#I struggle to remember what's going on here....
-
-		self.doc = self.nlp(text)
-		#print("noun chunks: \n")
-		ctr = 0
-		doctitle = ''
-		chunks = list(self.doc.noun_chunks)
-		chunks = self.myfilter(chunks)
-		for item in chunks: #doc.noun_chunks:
-			temp = str(item)
-			t2 = temp.split()
-			if (ctr < 5) and (t2[0] != "510"):
-				doctitle += str(item) + "-"
-				ctr += 1
-		
-		#I need to filter out (most) punctuation, and replace spaces with underscores			
-		if self.verbose:
-			print("Doctitle: ", doctitle)	
-
-		mydate = self.get_date()
-		
-		#print("fnldate: ", str(date.date()))
-		result = doctitle + '[' + str(mydate.date()) + ']'
-		print("new title: ", result)
-		return result
-
-	def renamePDF(self, doc_filepath, doc_name, numpgs, newtitle):
-		newfilepath = doc_filepath + '/' + 'convertedPDFtitles/'	
-		if not os.path.exists(newfilepath):
-			os.makedirs(newfilepath)
-		copypath = doc_name
-		if self.verbose:
-			print("cpypath: ", copypath)
-			print("newfilepath: ", newfilepath)
-		shutil.copy(copypath, newfilepath)
-		docnameonly = doc_name[doc_name.rindex('/') + 1 : ] 
-		if self.verbose:
-			print("dname: ", docnameonly)
-		renamepath = newfilepath + docnameonly
-		if self.verbose:
-			print("renamepath: ", renamepath)
-		fnltitle = newfilepath + newtitle + '.pdf'
-		if self.verbose:
-			print("fnltitle: ", fnltitle)
-		os.rename(renamepath, fnltitle) 
+		return mydate
