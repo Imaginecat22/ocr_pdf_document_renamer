@@ -23,30 +23,28 @@ class PDF_Renamer:
 			print("No files found!")
 			sys.exit(-1)
 		else:
+			n = 0
 			for file in self.pdfs:
 				pdf = my_pdf.PDF(file, self.home, True)
 				newtitle = pdf.get_new_title()
-				self.renamePDF(self.home, self.pdfs[file], newtitle)
+				self.renamePDF(self.home, self.pdfs[n], newtitle)
+				n += 1
 
-	def renamePDF(self, doc_filepath, doc_name, newtitle):
-		newfilepath = doc_filepath + '/' + 'convertedPDFtitles/'	
-		if not os.path.exists(newfilepath):
-			os.makedirs(newfilepath)
-		copypath = doc_name
+	def renamePDF(self, doc_dir, doc_name, new_name):
 		if self.verbose:
-			print("cpypath: ", copypath)
-			print("newfilepath: ", newfilepath)
-		shutil.copy(copypath, newfilepath)
-		docnameonly = doc_name[doc_name.rindex('/') + 1 : ] 
+			print("doc_dir:", doc_dir)
+			print("doc_name:", doc_name)
+			print("new_name:", new_name)
+		new_dir = doc_dir + 'convertedPDFtitles/'	
+		if not os.path.exists(new_dir):
+			os.makedirs(new_dir)
+		new_path = new_dir + new_name
+		doc_path = doc_dir + doc_name
 		if self.verbose:
-			print("dname: ", docnameonly)
-		renamepath = newfilepath + docnameonly
-		if self.verbose:
-			print("renamepath: ", renamepath)
-		fnltitle = newfilepath + newtitle + '.pdf'
-		if self.verbose:
-			print("fnltitle: ", fnltitle)
-		os.rename(renamepath, fnltitle) 
+			print("new_dir: ", new_dir)
+			print("new_path: ", new_path)
+			print("doc_path: ", doc_path)
+		shutil.copy(doc_path, new_path)
 
 	def get_os(self):
 		print(sys.platform)

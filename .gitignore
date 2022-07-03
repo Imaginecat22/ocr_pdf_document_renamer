@@ -1,2 +1,5 @@
 /.venv/
 .preprocessing.py.swp
+/my_class/__pycache__
+/ocr_pdf_renamer.egg-info
+/build
