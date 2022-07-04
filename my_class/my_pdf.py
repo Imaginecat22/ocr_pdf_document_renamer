@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
 
-#import dateparser
 import os
-from wand.image import Image
-import shutil
 
+import datefinder
 import pytesseract 
-import spacy
 import en_core_web_md
+from wand.image import Image
+
 
 import dateutil.parser as dparser
 import datetime
 from datetime import date
-import re
 from string import punctuation
+from glob import glob
 
-import datefinder
 
 class PDF:
 	def __init__(self, title, path, verbose = False, testing = 0):
@@ -26,13 +24,15 @@ class PDF:
 		self.date = self.get_date()
 		self.today = date.today()
 		self.pdf_path = os.path.join(self.home, self.title)
-		#self.img_path = os.path.join(self.pdf_path + 'convertedimages')
 		self.img_path = os.path.join(self.home + 'convertedimages')
 		self.words = []
 		self.num_pages = self.get_pdf_images()
 		self.text = self.get_text()
 		self.nlp = en_core_web_md.load()
 		self.doc = self.nlp(self.text)
+
+	def ocr_scan(self):
+		return ""
 
 	def get_new_title(self): 
 		newtitle = self.get_keywords_for_title()

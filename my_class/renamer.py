@@ -2,17 +2,16 @@
 
 import os, sys
 from datetime import date
-from . import my_pdf
 from glob import glob
 import shutil
 
+from . import my_pdf
+from . import keywords
 class PDF_Renamer:
 	def __init__(self, auto = False, testing = 0):
 		self.testing = testing
 		self.auto = auto
 		self.today = date.today()
-		#self.watch_path = input("Please input file path to search: ")
-		#print("Source Path Used: >" + self.watch_path)
 		self.verbose = self.get_verbose()
 		self.os = self.get_os() #0 = lin, 1 = mac, 2 = win
 		self.home = self.get_home()
@@ -26,16 +25,17 @@ class PDF_Renamer:
 			n = 0
 			for file in self.pdfs:
 				pdf = my_pdf.PDF(file, self.home, True)
+				#words = keywords.Keywords(self.verbose, 3)
 				newtitle = pdf.get_new_title()
 				self.renamePDF(self.home, self.pdfs[n], newtitle)
 				n += 1
 
-	def renamePDF(self, doc_dir, doc_name, new_name):
+	def renamePDF(self, doc_dir, doc_name, new_name, category = "convertedPDFtitles"):
 		if self.verbose:
 			print("doc_dir:", doc_dir)
 			print("doc_name:", doc_name)
 			print("new_name:", new_name)
-		new_dir = doc_dir + 'convertedPDFtitles/'	
+		new_dir = doc_dir + category + '/'	
 		if not os.path.exists(new_dir):
 			os.makedirs(new_dir)
 		new_path = new_dir + new_name
@@ -114,3 +114,5 @@ class PDF_Renamer:
 				print("third partition	:", dname[2])
 			pdfs.append(dname[2])
 		return pdfs
+
+	
