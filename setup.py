@@ -4,8 +4,8 @@ from setuptools import find_packages, setup
 LONG_DESCRIPTION = open("README.md", 'r')
 
 setup(
-    name='ocr_pdf_renamer',
-    version='2.0.3',
+    name='ocr_pdf_document_renamer',
+    version='2.1.0',
     packages=find_packages(),
     license_files=('LICENSE',),
     author='Robert Walters',

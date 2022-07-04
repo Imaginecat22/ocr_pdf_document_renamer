@@ -1,51 +1,62 @@
 
-import dateparser
+import os
+import datefinder
+import dateutil.parser as dparser
 import datetime
 
 class Keywords:
     def __init__(self, verbose, num = 5):
         self.verbose = verbose
         self.new_title = ""
-        self.num = 3
+        self.num = num
+        self.result = []
+        self.naughty_list = self.get_naughtylist()
+        self.categories = self.get_category_list()
     
-    def __call__(self):
-        self.num = 3
-        result = []
+    def __call__(self, ocr_document):
         #pos_tag = ['PROPN', 'ADJ', 'NOUN']
-        pos_tag = ['PROPN', 'NOUN']
+        #pos_tag = ['PROPN', 'NOUN']
 
         ctr = 0
-        new_title = ''
-        chunks = list(self.doc.noun_chunks)
+        chunks = list(ocr_document.noun_chunks)
         chunks = self.myfilter(chunks)
         for item in chunks: #doc.noun_chunks:
-            temp = str(item)
-            t2 = temp.split()
             if (ctr < self.num):
-                new_title += str(item) + "-"
+                self.new_title += str(item) + "-"
                 ctr += 1
 		
         #I need to filter out (most) punctuation, and replace spaces with underscores			
         if self.verbose:
-            print("new_title: ", new_title)	
+            print("new_title: ", self.new_title)	
 
         mydate = self.get_parsed_date()
-
         #print("fnldate: ", str(date.date()))
-        result = new_title + '[' + str(mydate.date()) + ']'
-        print("new title: ", result)
-        return result
+        self.result = self.new_title + '[' + str(mydate.date()) + ']'
+        print("new title: ", self.result)
+
+    def get_category_list(self):
+        category_file_path = os.path.join(os.getcwd(), "categories.txt")
+        category_file = open(category_file_path, "r")
+        categories = category_file.read().splitlines()
+        category_file.close()
+        return categories
+
     
     def get_naughtylist(self):
-        naughty_file = open()
+        naughty_file_path = os.path.join(os.getcwd(), "naughtylist.txt")
+        print(naughty_file_path)
+        ctr = 2
+        naughty_file = open(naughty_file_path, "r")
+        naughty_lines = naughty_file.read().splitlines()
+        naughty_file.close()
+        if self.verbose:
+            print("Naughty List:", naughty_lines)
+        return naughty_lines[2:]
+
 
 	#this doesn't appear to be working/doing anything...
 	# Get Repeats and the top few
     def myfilter(self, noun_chunks):
-        naughtylist = ['APT_318', 'APT#_318', 'APT_#_318', 'APT_#318', 
-            'Nashville', 'NASHVILLE', '37209', 
-            '400-2173', '(423)400-2173', '4234002173',
-            '510_Old_Hickory', 'Old_Hickory_Blvd', 'OLD_HICKORY']
         nounlist = []
         chunkslist = []
         for item in noun_chunks:

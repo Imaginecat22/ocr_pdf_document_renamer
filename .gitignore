@@ -1,7 +1,7 @@
 /.venv/
 .preprocessing.py.swp
 /my_class/__pycache__
-/ocr_pdf_renamer.egg-info
+/ocr_pdf_document_renamer.egg-info
 /build
 categories.txt
 naughtylist.txt
